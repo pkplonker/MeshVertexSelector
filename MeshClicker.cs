@@ -3,37 +3,48 @@ using UnityEditor;
 
 public class MeshClicker : EditorWindow
 {
+	// Define a class to hold settings related to vertex selection.
 	public class VertexSelectorSettings : ScriptableObject
 	{
-		public bool ShowHitPosition = false;
-		public bool ShowMeasurementInLocal = false;
-		public Vector3 HitVertex = Vector3.positiveInfinity;
+		public bool ShowHitPosition;
+		public bool ShowMeasurementInLocal;
+
+		public Vector3
+			HitVertex = Vector3
+				.positiveInfinity; // The hit vertex position. Initialized to positive infinity to indicate 'not set'.
 	}
 
+	// Variables to store the selected game object and its mesh data.
 	private GameObject selectedObject;
 	private Mesh mesh;
 	private Vector3[] vertices;
 	private int[] triangles;
-	private VertexSelectorSettings settings;
+
+	private VertexSelectorSettings settings; // The settings instance.
+
+	// SerializedObject and SerializedProperty are used to edit settings in a way that plays nice with Unity's editor, including undo functionality.
 	private SerializedObject serializedSettings;
 	private SerializedProperty propShowHitPosition;
 	private SerializedProperty propShowMeasurementInLocal;
 	private SerializedProperty prophitVertex;
 
-	private const string PrefKeyShowHitPosition = "VertexSelectorWindow.ShowHitPosition";
+	// Constants for EditorPrefs keys to remember user settings.
+	private const string PREF_KEY_SHOW_HIT_POSITION = "VertexSelectorWindow.ShowHitPosition";
+	private const string PREF_KEY_SHOW_MEASUREMENT_IN_LOCAL = "VertexSelectorWindow.ShowMeasurementInLocal";
 
-	private const string PrefKeyShowMeasurementInLocal = "VertexSelectorWindow.ShowMeasurementInLocal";
-
+	// Method to show the window.
 	[MenuItem("Tools/Vertex Selector")]
 	public static void ShowWindow() => GetWindow<MeshClicker>("Vertex Selector");
 
+	// UI definition for the window.
 	private void OnGUI()
 	{
+		// Provide instructions and a way to select a GameObject.
 		GUILayout.Label("Select a GameObject with a Mesh", EditorStyles.boldLabel);
-
 		selectedObject =
 			(GameObject) EditorGUILayout.ObjectField("Target Object", selectedObject, typeof(GameObject), true);
 
+		// When a GameObject is selected, attempt to get its mesh data.
 		if (selectedObject != null)
 		{
 			if (selectedObject.TryGetComponent<MeshFilter>(out var meshFilter))
@@ -44,53 +55,65 @@ public class MeshClicker : EditorWindow
 			}
 			else
 			{
-				mesh = null;
+				mesh = null; // If no mesh is found, clear the mesh variable.
 			}
 		}
 
-		serializedSettings?.Update();
+		serializedSettings?.Update(); // Ensure the SerializedObject is updated to reflect the latest data.
 
+		// Create toggles for user settings.
 		EditorGUILayout.PropertyField(propShowHitPosition, new GUIContent("Show Hit Position"));
 		if (propShowHitPosition.boolValue)
 		{
 			EditorGUILayout.PropertyField(propShowMeasurementInLocal, new GUIContent("In Local Space"));
 		}
 
-		serializedSettings?.ApplyModifiedProperties();
+		serializedSettings
+			?.ApplyModifiedProperties(); // Apply changes made to the SerializedObject back to the original object.
 
-		Repaint();
-		Debug.Log(settings.HitVertex);
+		Repaint(); // Ensure the editor window is refreshed.
+		Debug.Log(settings.HitVertex); // Debug the hit vertex value.
 	}
 
+	// This method will be called during Scene view rendering.
 	private void OnSceneGUI(SceneView sceneView)
 	{
+		// If no mesh, skip processing.
 		if (mesh == null) return;
 
+		// Check for mouse click in the scene.
 		if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
 		{
-			Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-			CheckForVertexHit(ray);
-			SceneView.RepaintAll();
+			Ray ray = HandleUtility.GUIPointToWorldRay(Event.current
+				.mousePosition); // Convert mouse click to a world-space ray.
+			CheckForVertexHit(ray); // Check if the ray hits a vertex.
+			SceneView.RepaintAll(); // Refresh Scene view to reflect any changes.
 		}
 
+		// If a vertex is hit, draw a visual indicator.
 		if (settings.HitVertex != Vector3.positiveInfinity)
 		{
 			Handles.color = Color.red;
 			Handles.SphereHandleCap(0, settings.HitVertex, Quaternion.identity, 0.1f, EventType.Repaint);
 		}
 
+		// Optionally, display a label showing the hit position.
 		if (settings.HitVertex != Vector3.positiveInfinity && settings.ShowHitPosition)
 		{
 			DrawHitLabel(settings.HitVertex);
 		}
 	}
 
+	// Draws a label at the provided hit point.
 	private void DrawHitLabel(Vector3 hitpoint)
 	{
+		// Get the transform of the currently selected object.
 		var currentTransform = selectedObject.transform;
 
+		// If there's no transform, return early.
 		if (currentTransform == null) return;
 
+		// Define the label styles.
 		var bgColor = Texture2D.grayTexture;
 		var textColor = Color.magenta;
 		var labelStyle = new GUIStyle
@@ -104,18 +127,22 @@ public class MeshClicker : EditorWindow
 			alignment = TextAnchor.UpperCenter,
 		};
 
+		// Initialize the hit point position.
 		Vector3 adjustedHitPoint = hitpoint;
 
+		// Convert the global hit point to local coordinates if required.
 		if (settings.ShowMeasurementInLocal && currentTransform != null)
 		{
 			adjustedHitPoint = currentTransform.InverseTransformPoint(hitpoint);
 		}
 
+		// Extract individual axis values.
 		var xDelta = adjustedHitPoint.x;
 		var yDelta = adjustedHitPoint.y;
 		var zDelta = adjustedHitPoint.z;
 		var precision = 2;
 
+		// Prepare the main text and sub-texts to be shown.
 		string mainText = "";
 		string[] subTexts =
 		{
@@ -124,6 +151,7 @@ public class MeshClicker : EditorWindow
 			string.Format("Z:{0:F" + precision + "}", zDelta)
 		};
 
+		// Define colors corresponding to each axis.
 		Color[] subColors =
 		{
 			Color.red,
@@ -131,26 +159,32 @@ public class MeshClicker : EditorWindow
 			Color.blue
 		};
 
-		DrawMultiColorLabel(hitpoint, mainText, textColor, subTexts, subColors,
-			labelStyle);
+		// Draw the label with multiple colors.
+		DrawMultiColorLabel(hitpoint, mainText, textColor, subTexts, subColors, labelStyle);
 	}
 
+	// Draws a label with a main text and sub-texts with distinct colors.
 	public static void DrawMultiColorLabel(Vector3 position, string mainText, Color mainColor, string[] subTexts,
 		Color[] subColors, GUIStyle style)
 	{
+		// Offset to space out the text lines.
 		float yOffset = style.lineHeight * 1.01f;
+
+		// Convert the world point to a GUI point.
 		Vector2 guiPosition = HandleUtility.WorldToGUIPoint(position);
 
 		GUIStyle noBackgroundStyle = new GUIStyle(style);
 
+		// Draw the main text if provided.
 		if (!string.IsNullOrEmpty(mainText))
 		{
 			noBackgroundStyle.normal.textColor = mainColor;
 			Vector3 worldPositionForMain = HandleUtility.GUIPointToWorldRay(guiPosition).GetPoint(10);
 			Handles.Label(worldPositionForMain, mainText, noBackgroundStyle);
-			guiPosition.y += yOffset; // Adjust yOffset only if mainText is drawn
+			guiPosition.y += yOffset;
 		}
 
+		// Draw each of the sub-texts with their respective colors.
 		for (int i = 0; i < subTexts.Length; i++)
 		{
 			noBackgroundStyle.normal.textColor = subColors[i];
@@ -160,78 +194,114 @@ public class MeshClicker : EditorWindow
 		}
 	}
 
+	// Event handler for when the script is enabled.
 	private void OnEnable()
 	{
+		// Create settings instance if it doesn't exist.
 		if (settings == null)
 		{
 			settings = CreateInstance<VertexSelectorSettings>();
 		}
 
+		// Load settings from the editor's preferences.
 		LoadSettingsFromPrefs();
 
+		// Serialize the settings object.
 		serializedSettings = new SerializedObject(settings);
+
+		// Manage the SceneGUI callbacks.
 		SceneView.duringSceneGui -= OnSceneGUI;
 		SceneView.duringSceneGui += OnSceneGUI;
-		settings.ShowHitPosition = EditorPrefs.GetBool(PrefKeyShowHitPosition, false);
-		settings.ShowMeasurementInLocal = EditorPrefs.GetBool(PrefKeyShowMeasurementInLocal, false);
+
+		// Fetch saved preferences.
+		settings.ShowHitPosition = EditorPrefs.GetBool(PREF_KEY_SHOW_HIT_POSITION, false);
+		settings.ShowMeasurementInLocal = EditorPrefs.GetBool(PREF_KEY_SHOW_MEASUREMENT_IN_LOCAL, false);
+
+		// Find properties in the serialized settings.
 		propShowHitPosition = serializedSettings.FindProperty("ShowHitPosition");
 		propShowMeasurementInLocal = serializedSettings.FindProperty("ShowMeasurementInLocal");
 		prophitVertex = serializedSettings.FindProperty("HitVertex");
+
+		// Manage Undo/Redo callbacks.
 		Undo.undoRedoPerformed -= OnUndoRedo;
 		Undo.undoRedoPerformed += OnUndoRedo;
 	}
 
+	// Event handler for when the script is disabled.
 	private void OnDisable()
 	{
+		// Save settings to the editor's preferences.
 		SaveSettingsToPrefs();
+
+		// Unsubscribe from SceneGUI callbacks.
 		SceneView.duringSceneGui -= OnSceneGUI;
-		EditorPrefs.SetBool(PrefKeyShowHitPosition, settings.ShowHitPosition);
-		EditorPrefs.SetBool(PrefKeyShowMeasurementInLocal, settings.ShowMeasurementInLocal);
+
+		// Save settings in the editor's preferences.
+		EditorPrefs.SetBool(PREF_KEY_SHOW_HIT_POSITION, settings.ShowHitPosition);
+		EditorPrefs.SetBool(PREF_KEY_SHOW_MEASUREMENT_IN_LOCAL, settings.ShowMeasurementInLocal);
+
+		// Destroy the settings instance.
 		if (settings)
 		{
 			DestroyImmediate(settings);
 		}
 
+		// Unsubscribe from Undo/Redo callbacks.
 		Undo.undoRedoPerformed -= OnUndoRedo;
 	}
 
+	// Load settings from the editor's preferences.
 	private void LoadSettingsFromPrefs()
 	{
-		settings.ShowHitPosition = EditorPrefs.GetBool(PrefKeyShowHitPosition, false);
-		settings.ShowMeasurementInLocal = EditorPrefs.GetBool(PrefKeyShowMeasurementInLocal, false);
+		settings.ShowHitPosition = EditorPrefs.GetBool(PREF_KEY_SHOW_HIT_POSITION, false);
+		settings.ShowMeasurementInLocal = EditorPrefs.GetBool(PREF_KEY_SHOW_MEASUREMENT_IN_LOCAL, false);
 	}
 
+	// Save settings to the editor's preferences.
 	private void SaveSettingsToPrefs()
 	{
-		EditorPrefs.SetBool(PrefKeyShowHitPosition, settings.ShowHitPosition);
-		EditorPrefs.SetBool(PrefKeyShowMeasurementInLocal, settings.ShowMeasurementInLocal);
+		EditorPrefs.SetBool(PREF_KEY_SHOW_HIT_POSITION, settings.ShowHitPosition);
+		EditorPrefs.SetBool(PREF_KEY_SHOW_MEASUREMENT_IN_LOCAL, settings.ShowMeasurementInLocal);
 	}
 
 	private void CheckForVertexHit(Ray ray)
 	{
+		// Initialize the closest intersection distance to a large value.
 		float closestIntersection = float.MaxValue;
+
+		// Create a placeholder for the position of the newly detected vertex.
 		Vector3 newVertexPosition = Vector3.zero;
+
+		// A flag to check if a vertex was found in the ray's path.
 		bool vertexFound = false;
 
+		// Iterate over the triangles, checking every 3 vertices (since triangles have 3 points).
 		for (var i = 0; i < triangles.Length; i += 3)
 		{
+			// Convert the local space vertices of the triangle to world space.
 			Vector3 v0 = selectedObject.transform.TransformPoint(vertices[triangles[i]]);
 			Vector3 v1 = selectedObject.transform.TransformPoint(vertices[triangles[i + 1]]);
 			Vector3 v2 = selectedObject.transform.TransformPoint(vertices[triangles[i + 2]]);
 
+			// Check if the given ray intersects with the current triangle.
+			// If not, continue to the next triangle.
 			if (!RayIntersectsTriangle(ray, v0, v1, v2, out var intersection)) continue;
 
+			// Calculate the distance from the ray's origin to the intersection point.
 			float intersectionDistance = Vector3.Distance(ray.origin, intersection);
+
+			// If the current intersection is closer than any previous intersection.
 			if (intersectionDistance < closestIntersection)
 			{
 				closestIntersection = intersectionDistance;
 
-				// Determine the closest vertex of the intersected triangle based on the intersection point
+				// Determine the vertex of the intersected triangle that is closest to the intersection point.
 				Vector3 localIntersection = selectedObject.transform.InverseTransformPoint(intersection);
 				float d0 = Vector3.Distance(localIntersection, vertices[triangles[i]]);
 				float d1 = Vector3.Distance(localIntersection, vertices[triangles[i + 1]]);
 				float d2 = Vector3.Distance(localIntersection, vertices[triangles[i + 2]]);
 
+				// Assign the closest vertex to newVertexPosition.
 				if (d0 < d1 && d0 < d2)
 				{
 					newVertexPosition = vertices[triangles[i]];
@@ -245,23 +315,33 @@ public class MeshClicker : EditorWindow
 					newVertexPosition = vertices[triangles[i + 2]];
 				}
 
+				// Convert the new vertex position to world space.
 				newVertexPosition = selectedObject.transform.TransformPoint(newVertexPosition);
 				vertexFound = true;
 			}
 		}
 
+		// If a vertex was found and it's a different position than the last stored one
 		if (vertexFound && prophitVertex.vector3Value != newVertexPosition)
 		{
+			// Log the detection of a new vertex position.
 			Debug.Log("Saving new vert pos ");
+
+			// Record the change for undo functionality.
 			Undo.RecordObject(settings, "Select Vertex");
+
+			// Update the serialized settings.
 			serializedSettings.Update();
 
+			// Assign the new vertex position to the serialized property.
 			prophitVertex.vector3Value = newVertexPosition;
 
+			// Apply the changes made to the serialized settings.
 			serializedSettings.ApplyModifiedProperties();
 		}
 	}
 
+	// Event handler for the Undo/Redo action, triggering a repaint of the scene.
 	private void OnUndoRedo() => SceneView.RepaintAll();
 
 	private bool RayIntersectsTriangle(Ray ray, Vector3 v0, Vector3 v1, Vector3 v2, out Vector3 hit)
