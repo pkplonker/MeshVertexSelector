@@ -1,7 +1,7 @@
 ##  Mesh Vertex Selector
 
 #### OverviewOverview
-The Vertex Hit Labeler is a Unity Editor script designed to visually aid developers and designers by providing labels on meshes in the scene view. Specifically, this script focuses on labeling vertices hit by a ray. It not only showcases the exact position of these hits but also provides measurements in local or global space, and provides persistent settings for user ease of use.
+The Mesh Vertex Selector is a Unity Editor script designed to visually aid developers and designers by providing labels on meshes in the scene view. Specifically, this script focuses on labeling vertices hit by a ray. It not only showcases the exact position of these hits but also provides measurements in local or global space, and provides persistent settings for user ease of use.
 
 #### FeaturesFeatures
 
@@ -29,6 +29,7 @@ The Vertex Hit Labeler is a Unity Editor script designed to visually aid develop
 - Detecting Vertex Hits • The CheckForVertexHit(Ray ray) function checks for the closest vertex hit by a given ray on the selected object's mesh.
 
 #### Recommendations
-For improved performance and more precise vertex detection, it's advisable to use this tool on optimized meshes with a limited number of vertices. • Regularly save the scene to ensure all data is backed up when using this tool.
+For improved performance and more precise vertex detection, it's advisable to use this tool on optimized meshes with a limited number of vertices. Regularly save the scene to ensure all data is backed up when using this tool.
 
-Conclusion The Vertex Hit Labeler is a tool for developers and designers seeking greater visibility and understanding of their 3D meshes in Unity. Its customization options, persistent settings, and vertex detection make it a valuable asset in the Unity editor environment.
+#### Conclusion
+The Mesh Vertex Selector is a tool for developers and designers seeking greater visibility and understanding of their 3D meshes in Unity. Its customization options, persistent settings, and vertex detection make it a valuable asset in the Unity editor environment.
