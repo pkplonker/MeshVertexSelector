@@ -47,9 +47,12 @@ public class MeshClicker : EditorWindow
 		// When a GameObject is selected, attempt to get its mesh data.
 		if (selectedObject != null)
 		{
-			if (selectedObject.TryGetComponent<MeshFilter>(out var meshFilter))
+			var meshFilters = selectedObject.GetComponentsInChildren<MeshFilter>();
+			if (meshFilters.Length > 0)
 			{
-				mesh = meshFilter.sharedMesh;
+				// Get the first mesh for display, but you may want to expand this 
+				// to handle multiple meshes better in your UI.
+				mesh = meshFilters[0].sharedMesh;
 				vertices = mesh.vertices;
 				triangles = mesh.triangles;
 			}
@@ -274,50 +277,56 @@ public class MeshClicker : EditorWindow
 
 		// A flag to check if a vertex was found in the ray's path.
 		bool vertexFound = false;
-
-		// Iterate over the triangles, checking every 3 vertices (since triangles have 3 points).
-		for (var i = 0; i < triangles.Length; i += 3)
+		var meshFilters = selectedObject.GetComponentsInChildren<MeshFilter>();
+		foreach (var meshFilter in meshFilters)
 		{
-			// Convert the local space vertices of the triangle to world space.
-			Vector3 v0 = selectedObject.transform.TransformPoint(vertices[triangles[i]]);
-			Vector3 v1 = selectedObject.transform.TransformPoint(vertices[triangles[i + 1]]);
-			Vector3 v2 = selectedObject.transform.TransformPoint(vertices[triangles[i + 2]]);
-
-			// Check if the given ray intersects with the current triangle.
-			// If not, continue to the next triangle.
-			if (!RayIntersectsTriangle(ray, v0, v1, v2, out var intersection)) continue;
-
-			// Calculate the distance from the ray's origin to the intersection point.
-			float intersectionDistance = Vector3.Distance(ray.origin, intersection);
-
-			// If the current intersection is closer than any previous intersection.
-			if (intersectionDistance < closestIntersection)
+			// Update the mesh and associated vertices and triangles for each MeshFilter
+			mesh = meshFilter.sharedMesh;
+			vertices = mesh.vertices;
+			triangles = mesh.triangles;
+			// Iterate over the triangles, checking every 3 vertices (since triangles have 3 points).
+			for (var i = 0; i < triangles.Length; i += 3)
 			{
-				closestIntersection = intersectionDistance;
+				// Convert the local space vertices of the triangle to world space.
+				Vector3 v0 = meshFilter.transform.TransformPoint(vertices[triangles[i]]);
+				Vector3 v1 = meshFilter.transform.TransformPoint(vertices[triangles[i + 1]]);
+				Vector3 v2 = meshFilter.transform.TransformPoint(vertices[triangles[i + 2]]);
 
-				// Determine the vertex of the intersected triangle that is closest to the intersection point.
-				Vector3 localIntersection = selectedObject.transform.InverseTransformPoint(intersection);
-				float d0 = Vector3.Distance(localIntersection, vertices[triangles[i]]);
-				float d1 = Vector3.Distance(localIntersection, vertices[triangles[i + 1]]);
-				float d2 = Vector3.Distance(localIntersection, vertices[triangles[i + 2]]);
+				// Check if the given ray intersects with the current triangle.
+				// If not, continue to the next triangle.
+				if (!RayIntersectsTriangle(ray, v0, v1, v2, out var intersection)) continue;
 
-				// Assign the closest vertex to newVertexPosition.
-				if (d0 < d1 && d0 < d2)
-				{
-					newVertexPosition = vertices[triangles[i]];
-				}
-				else if (d1 < d0 && d1 < d2)
-				{
-					newVertexPosition = vertices[triangles[i + 1]];
-				}
-				else
-				{
-					newVertexPosition = vertices[triangles[i + 2]];
-				}
+				// Calculate the distance from the ray's origin to the intersection point.
+				float intersectionDistance = Vector3.Distance(ray.origin, intersection);
 
-				// Convert the new vertex position to world space.
-				newVertexPosition = selectedObject.transform.TransformPoint(newVertexPosition);
-				vertexFound = true;
+				// If the current intersection is closer than any previous intersection.
+				if (intersectionDistance < closestIntersection)
+				{
+					closestIntersection = intersectionDistance;
+
+					// Determine the vertex of the intersected triangle that is closest to the intersection point.
+					Vector3 localIntersection = meshFilter.transform.InverseTransformPoint(intersection);
+					float d0 = Vector3.Distance(localIntersection, vertices[triangles[i]]);
+					float d1 = Vector3.Distance(localIntersection, vertices[triangles[i + 1]]);
+					float d2 = Vector3.Distance(localIntersection, vertices[triangles[i + 2]]);
+
+					// Assign the closest vertex to newVertexPosition.
+					if (d0 < d1 && d0 < d2)
+					{
+						newVertexPosition = vertices[triangles[i]];
+					}
+					else if (d1 < d0 && d1 < d2)
+					{
+						newVertexPosition = vertices[triangles[i + 1]];
+					}
+					else
+					{
+						newVertexPosition = vertices[triangles[i + 2]];
+					}
+					// Convert the new vertex position to world space.
+					newVertexPosition = meshFilter.transform.TransformPoint(newVertexPosition);
+					vertexFound = true;
+				}
 			}
 		}
 
