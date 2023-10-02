@@ -5,13 +5,18 @@ The Vertex Hit Labeler is a Unity Editor script designed to visually aid develop
 
 2. Features
 .	Vertex Hit Detection: The script can detect which vertex of a mesh is hit by a ray and can highlight this position with a label.
+
 .	Customizable Hit Labels: Labels drawn at hit points on the mesh display the position (X, Y, Z) of the hit point. Each coordinate is colored distinctively: X in red, Y in green, and Z in blue.
+
 .	Measurement Space Selection: Developers can choose to see the measurements in local or global space.
+
 .	Persistent User Settings: The script can remember the user's settings, including their preference for showing hit positions and the desired measurement space. These settings are saved and automatically loaded between sessions.
+
 .	Multi-Color Labeling: A utility function exists to draw labels in multiple colors, offering clarity and differentiation for data points.
+
 .	Undo/Redo Integration: Integrates with Unity's Undo system. Actions like selecting a vertex can be undone or redone seamlessly.
 
-3. Usage
+4. Usage
 
 3.1 Setup
 •	Ensure the script is located in an Editor folder within your Unity project. It can be accesed by Tools/Vertex Selector
